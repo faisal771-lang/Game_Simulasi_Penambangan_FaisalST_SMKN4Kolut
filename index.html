@@ -1,0 +1,2329 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Open Cast Mining Simulator - Kelas XII Fase F</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <!-- Font Awesome for Mining & UI Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --panel-dark: #1e293b;
+      --accent-amber: #f59e0b;
+      --accent-emerald: #10b981;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0b1120;
+      color: #f1f5f9;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    .font-mono-tech {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    /* Mining Hazard Stripe Accent */
+    .hazard-border {
+      background: repeating-linear-gradient(
+        -45deg,
+        #f59e0b,
+        #f59e0b 10px,
+        #1e293b 10px,
+        #1e293b 20px
+      );
+    }
+
+    /* Tactile Game Buttons */
+    .btn-mining {
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 0 #b45309;
+    }
+    .btn-mining:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #b45309;
+    }
+    .btn-mining:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #b45309;
+    }
+    .btn-mining:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-emerald {
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 0 #047857;
+    }
+    .btn-emerald:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #047857;
+    }
+    .btn-emerald:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #047857;
+    }
+
+    /* Pulse animation for active stage */
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.45); }
+      50% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+    }
+    .stage-active-glow {
+      animation: pulseGlow 2s infinite;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+
+  <!-- TOP NAVIGATION / HEADER BAR -->
+  <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 shadow-lg">
+    <div class="h-1.5 w-full hazard-border"></div>
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2">
+      <!-- Brand / Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-inner">
+          <i class="fa-solid fa-mountain-sun text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm sm:text-base md:text-lg font-extrabold tracking-tight text-white">
+              OPEN CAST MINING SIMULATOR
+            </h1>
+            <span class="hidden sm:inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">
+              SMK Kelas XII • Fase F
+            </span>
+          </div>
+          <p class="text-[11px] sm:text-xs text-slate-400">
+            Mata Pelajaran: Sistem Penambangan (Tambang Terbuka / Open Cast)
+          </p>
+        </div>
+      </div>
+
+      <!-- Audio & Navigation Controls -->
+      <div class="flex items-center gap-2">
+        <button id="btn-toggle-bgm" onclick="AudioEngine.toggleBGM()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition" title="Hidupkan/Matikan Musik Latar">
+          <i id="icon-bgm" class="fa-solid fa-music text-amber-400"></i>
+          <span class="hidden md:inline">Musik:</span>
+          <span id="label-bgm" class="text-amber-400">ON</span>
+        </button>
+
+        <button id="btn-toggle-sfx" onclick="AudioEngine.toggleSFX()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition" title="Hidupkan/Matikan Efek Suara">
+          <i id="icon-sfx" class="fa-solid fa-volume-high text-emerald-400"></i>
+          <span class="hidden md:inline">SFX:</span>
+          <span id="label-sfx" class="text-emerald-400">ON</span>
+        </button>
+
+        <button id="btn-glossary" onclick="UI.toggleModal('modal-materi', true)" class="px-3 py-1.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-semibold flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-book-open"></i>
+          <span class="hidden sm:inline">Ringkasan Materi</span>
+        </button>
+
+        <button id="btn-home" onclick="Game.returnToMenu()" class="hidden px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-house"></i>
+          <span class="hidden sm:inline">Menu</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 flex flex-col max-w-7xl w-full mx-auto px-3 sm:px-6 py-4">
+
+    <!-- ==================== SCREEN 1: MAIN MENU ==================== -->
+    <section id="screen-menu" class="flex-1 flex flex-col justify-center items-center py-4 sm:py-8">
+      <div class="w-full max-w-4xl bg-slate-900/90 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+        <!-- Hero Banner -->
+        <div class="relative bg-gradient-to-br from-slate-900 via-slate-800 to-amber-950/40 p-6 sm:p-10 border-b border-slate-800">
+          <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div class="space-y-3 max-w-2xl">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                <i class="fa-solid fa-helmet-safety"></i>
+                <span>Simulasi Interaktif Teknik Pertambangan</span>
+              </div>
+              <h2 class="text-2xl sm:text-4xl font-extrabold text-white leading-tight">
+                Simulasi Siklus Operasi <span class="text-amber-400">Open Cast Mining</span>
+              </h2>
+              <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                Kuasai 7 tahapan utama penambangan metode <em>Open Cast</em> (tambang terbuka untuk endapan horizontal/tabular seperti batubara) mulai dari <strong>Land Clearing</strong> hingga <strong>Reklamasi & Revegetasi</strong> dengan manajemen K3, lingkungan, dan <em>Stripping Ratio</em>.
+              </p>
+            </div>
+
+            <!-- Visual Badge -->
+            <div class="w-full md:w-auto flex flex-row md:flex-col items-center justify-center gap-3 bg-slate-950/70 p-4 rounded-2xl border border-slate-800">
+              <div class="text-center">
+                <div class="text-2xl font-extrabold text-amber-400 font-mono-tech">7 TAHAP</div>
+                <div class="text-[11px] text-slate-400 uppercase tracking-wider">Siklus Tambang</div>
+              </div>
+              <div class="h-8 w-px md:h-px md:w-16 bg-slate-800"></div>
+              <div class="text-center">
+                <div class="text-2xl font-extrabold text-emerald-400 font-mono-tech">FASE F</div>
+                <div class="text-[11px] text-slate-400 uppercase tracking-wider">Kurikulum SMK</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Student Name & Mode Selection -->
+        <div class="p-6 sm:p-8 space-y-6">
+          <!-- Input Identitas Siswa -->
+          <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div class="flex items-center gap-2.5 text-slate-300 text-sm font-semibold min-w-fit">
+              <i class="fa-solid fa-user-graduate text-amber-400"></i>
+              <label for="input-student-name">Nama Kepala Teknik Tambang (Siswa):</label>
+            </div>
+            <input
+              type="text"
+              id="input-student-name"
+              placeholder="Masukkan nama lengkap Anda (opsional)..."
+              class="flex-1 bg-slate-900 border border-slate-700 focus:border-amber-500 focus:outline-none rounded-lg px-3.5 py-2 text-sm text-white placeholder-slate-500"
+            />
+          </div>
+
+          <!-- Game Mode Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <!-- Mode A: Kampanye / Simulasi Bertahap -->
+            <div class="bg-slate-800/60 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/60 rounded-2xl p-5 flex flex-col justify-between transition group">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 text-xs font-bold">
+                    MODE A • PEMBELAJARAN TERSTRUKTUR
+                  </span>
+                  <i class="fa-solid fa-list-check text-amber-400 text-xl group-hover:scale-110 transition"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Mode Kampanye (Simulasi Bertahap)</h3>
+                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Jalankan 7 siklus penambangan <em>Open Cast</em> secara berurutan. Dilengkapi panduan teknis, simulasi alat berat, dan studi kasus keputusan lapangan pada setiap tahapan.
+                </p>
+                <ul class="text-xs text-slate-400 space-y-1.5 pt-1">
+                  <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i> Panduan SOP setiap tahap penambangan</li>
+                  <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i> Anggaran awal standar: <strong>$1,200,000</strong></li>
+                  <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i> Target Produksi: <strong>50,000 Ton Batubara</strong></li>
+                </ul>
+              </div>
+              <button onclick="Game.start('campaign')" class="mt-5 w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm flex items-center justify-center gap-2 btn-mining">
+                <i class="fa-solid fa-play"></i>
+                <span>MULAI MODE KAMPANYE</span>
+              </button>
+            </div>
+
+            <!-- Mode B: Tantangan Efisiensi -->
+            <div class="bg-slate-800/60 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/60 rounded-2xl p-5 flex flex-col justify-between transition group">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-bold">
+                    MODE B • UJI KOMPETENSI & EFISIENSI
+                  </span>
+                  <i class="fa-solid fa-gauge-high text-emerald-400 text-xl group-hover:scale-110 transition"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Mode Tantangan Efisiensi (Manajemen Pit)</h3>
+                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Anggaran lebih ketat dan target produksi tinggi! Anda harus mengoptimalkan <em>Stripping Ratio</em>, menjaga kepatuhan lingkungan & K3 di atas 80%, dan memilih urutan operasi mandiri.
+                </p>
+                <ul class="text-xs text-slate-400 space-y-1.5 pt-1">
+                  <li><i class="fa-solid fa-bolt text-amber-400 mr-1.5"></i> Penalti biaya tinggi jika salah urutan operasi</li>
+                  <li><i class="fa-solid fa-bolt text-amber-400 mr-1.5"></i> Anggaran ketat: <strong>$950,000</strong></li>
+                  <li><i class="fa-solid fa-bolt text-amber-400 mr-1.5"></i> Target Produksi: <strong>65,000 Ton Batubara</strong></li>
+                </ul>
+              </div>
+              <button onclick="Game.start('challenge')" class="mt-5 w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm flex items-center justify-center gap-2 btn-emerald">
+                <i class="fa-solid fa-trophy"></i>
+                <span>MULAI TANTANGAN EFISIENSI</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 2: ACTIVE SIMULATION GAMEPLAY ==================== -->
+    <section id="screen-game" class="hidden flex-1 flex flex-col gap-3">
+
+      <!-- TOP KPI DASHBOARD BAR -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        <!-- KPI 1: Anggaran -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+            <span>ANGGARAN OPERASI</span>
+            <i class="fa-solid fa-sack-dollar text-amber-400"></i>
+          </div>
+          <div id="kpi-budget" class="text-base sm:text-lg font-extrabold font-mono-tech text-amber-400 mt-1">
+            $1,200,000
+          </div>
+          <div class="text-[10px] text-slate-500">Biaya alat & operasional</div>
+        </div>
+
+        <!-- KPI 2: Produksi Batubara -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+            <span>PRODUKSI (TON)</span>
+            <i class="fa-solid fa-cubes-stacked text-sky-400"></i>
+          </div>
+          <div class="flex items-baseline gap-1 mt-1">
+            <span id="kpi-coal" class="text-base sm:text-lg font-extrabold font-mono-tech text-sky-400">0</span>
+            <span id="kpi-coal-target" class="text-[11px] font-mono-tech text-slate-500">/ 50,000</span>
+          </div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full mt-1 overflow-hidden">
+            <div id="bar-coal" class="bg-sky-400 h-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- KPI 3: Keselamatan Kerja (K3) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+            <span>KESELAMATAN (K3)</span>
+            <i class="fa-solid fa-helmet-safety text-emerald-400"></i>
+          </div>
+          <div id="kpi-k3" class="text-base sm:text-lg font-extrabold font-mono-tech text-emerald-400 mt-1">
+            100%
+          </div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full mt-1 overflow-hidden">
+            <div id="bar-k3" class="bg-emerald-400 h-full transition-all duration-300" style="width: 100%"></div>
+          </div>
+        </div>
+
+        <!-- KPI 4: Kepatuhan Lingkungan -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+            <span>LINGKUNGAN (AMDAL)</span>
+            <i class="fa-solid fa-seedling text-teal-400"></i>
+          </div>
+          <div id="kpi-env" class="text-base sm:text-lg font-extrabold font-mono-tech text-teal-400 mt-1">
+            100%
+          </div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full mt-1 overflow-hidden">
+            <div id="bar-env" class="bg-teal-400 h-full transition-all duration-300" style="width: 100%"></div>
+          </div>
+        </div>
+
+        <!-- KPI 5: Stripping Ratio (SR) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+            <span>STRIPPING RATIO</span>
+            <i class="fa-solid fa-scale-balanced text-purple-400"></i>
+          </div>
+          <div id="kpi-sr" class="text-base sm:text-lg font-extrabold font-mono-tech text-purple-300 mt-1">
+            0.0 : 1
+          </div>
+          <div class="text-[10px] text-slate-500">BCM OB / Ton Coal</div>
+        </div>
+
+        <!-- KPI 6: Status Siklus -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+            <span>PROGRES SIKLUS</span>
+            <i class="fa-solid fa-rotate text-amber-400"></i>
+          </div>
+          <div id="kpi-stage-count" class="text-base sm:text-lg font-extrabold font-mono-tech text-white mt-1">
+            Tahap 1 / 7
+          </div>
+          <div id="kpi-mode-badge" class="text-[10px] font-bold text-amber-400 uppercase">
+            Mode Kampanye
+          </div>
+        </div>
+      </div>
+
+      <!-- 7-STAGE PIPELINE STEPPER -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-2.5 overflow-x-auto">
+        <div id="stage-stepper" class="grid grid-cols-7 min-w-[720px] gap-2">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- MAIN WORKSPACE: CANVAS VISUALIZER + CONTROL PANEL -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1">
+
+        <!-- LEFT / TOP: 2D CROSS-SECTION MINE PIT CANVAS (7 cols on lg) -->
+        <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col shadow-xl">
+          <!-- Canvas Toolbar Header -->
+          <div class="px-4 py-2.5 bg-slate-950/70 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-200">
+                Penampang Melintang Pit Open Cast (Live Simulation)
+              </span>
+            </div>
+            <div class="flex items-center gap-2 text-[11px] text-slate-400">
+              <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-600 inline-block"></span>Vegetasi</span>
+              <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-amber-800 inline-block"></span>Top Soil</span>
+              <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-stone-500 inline-block"></span>Overburden</span>
+              <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-slate-950 border border-slate-600 inline-block"></span>Batubara</span>
+            </div>
+          </div>
+
+          <!-- Responsive Canvas Container -->
+          <div id="canvas-wrapper" class="relative w-full h-[300px] sm:h-[360px] lg:h-[420px] bg-sky-950">
+            <canvas id="mineCanvas"></canvas>
+
+            <!-- Floating Toast Notification inside Canvas -->
+            <div id="canvas-toast" class="pointer-events-none opacity-0 transition-opacity duration-300 absolute top-3 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl bg-slate-900/95 border border-amber-500/50 text-xs sm:text-sm font-semibold text-white shadow-lg flex items-center gap-2 max-w-[90%] text-center">
+              <i id="canvas-toast-icon" class="fa-solid fa-circle-info text-amber-400"></i>
+              <span id="canvas-toast-text">Siap beroperasi...</span>
+            </div>
+
+            <!-- Countdown Overlay (for Blasting) -->
+            <div id="blasting-overlay" class="hidden absolute inset-0 bg-rose-950/60 backdrop-blur-[2px] flex flex-col items-center justify-center text-center p-4">
+              <div class="px-4 py-1.5 rounded-full bg-rose-600 text-white text-xs font-bold uppercase tracking-widest animate-bounce mb-2">
+                <i class="fa-solid fa-triangle-exclamation mr-1"></i> PERINGATAN PELEDAKAN (BLASTING)
+              </div>
+              <div id="blasting-timer" class="text-5xl sm:text-6xl font-black font-mono-tech text-amber-300 drop-shadow-lg">
+                3
+              </div>
+              <p class="text-xs text-slate-200 mt-2">Radius aman 500 meter dikosongkan...</p>
+            </div>
+          </div>
+
+          <!-- Canvas Footer Legend / Telemetry -->
+          <div class="px-4 py-2 bg-slate-950/80 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
+            <div id="telemetry-fleet">
+              <i class="fa-solid fa-truck-monster text-amber-400 mr-1"></i>
+              Armada Aktif: <span class="text-slate-200 font-semibold">Standby di Pit</span>
+            </div>
+            <div id="telemetry-weather">
+              <i class="fa-solid fa-sun text-amber-300 mr-1"></i>
+              Cuaca Pit: <span class="text-emerald-400 font-semibold">Cerah • Kadar Debu Normal</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT / BOTTOM: OPERATIONAL CONTROL & TECHNICAL CASE PANEL (5 cols on lg) -->
+        <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xl">
+          <div class="space-y-4">
+            <!-- Stage Title & Badge -->
+            <div class="border-b border-slate-800 pb-3">
+              <div class="flex items-center justify-between gap-2">
+                <span id="panel-stage-badge" class="px-2.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-xs font-bold font-mono-tech">
+                  TAHAP 1 / 7
+                </span>
+                <span id="panel-equipment-tag" class="text-xs text-slate-400 font-medium">
+                  <i class="fa-solid fa-tractor text-amber-400 mr-1"></i> Bulldozer D85ESS
+                </span>
+              </div>
+              <h2 id="panel-stage-title" class="text-lg sm:text-xl font-extrabold text-white mt-1.5">
+                Land Clearing (Pembersihan Lahan)
+              </h2>
+              <p id="panel-stage-desc" class="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed">
+                Pembersihan vegetasi, semak belukar, dan pepohonan di area bukaan tambang sesuai batas IUP.
+              </p>
+            </div>
+
+            <!-- Interactive Mini-Control / Progress Bar for Current Stage -->
+            <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+              <div class="flex items-center justify-between text-xs font-semibold">
+                <span class="text-slate-300">Progres Pekerjaan Tahap Ini:</span>
+                <span id="stage-progress-pct" class="font-mono-tech text-amber-400 font-bold">0%</span>
+              </div>
+              <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden p-0.5">
+                <div id="stage-progress-bar" class="h-full bg-gradient-to-r from-amber-500 to-emerald-400 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+
+              <!-- Contextual Field Action Controls -->
+              <div id="field-controls-area" class="pt-1 space-y-2">
+                <!-- Populated dynamically with technical decision / operational buttons -->
+              </div>
+            </div>
+
+            <!-- Technical Case Study / Field Decision Box -->
+            <div id="decision-box" class="bg-slate-800/60 border border-slate-700/80 rounded-xl p-3.5 space-y-2.5">
+              <div class="flex items-center gap-2 text-xs font-bold text-amber-300 uppercase tracking-wide">
+                <i class="fa-solid fa-clipboard-question"></i>
+                <span>Keputusan Teknis Lapangan (SOP)</span>
+              </div>
+              <p id="decision-question" class="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed">
+                Memuat studi kasus...
+              </p>
+              <div id="decision-options" class="space-y-2 pt-1">
+                <!-- Options populated dynamically -->
+              </div>
+              <div id="decision-feedback" class="hidden text-xs p-2.5 rounded-lg border"></div>
+            </div>
+          </div>
+
+          <!-- Bottom Action Navigation -->
+          <div class="pt-4 mt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <button id="btn-operate-action" onclick="Game.executeStageWork()" class="flex-1 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 btn-mining">
+              <i id="btn-operate-icon" class="fa-solid fa-gears"></i>
+              <span id="btn-operate-text">OPERASIKAN ALAT BERAT</span>
+            </button>
+
+            <button id="btn-next-stage" onclick="Game.nextStage()" disabled class="py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 btn-emerald">
+              <span>LANJUT</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHALLENGE MODE FREE-ORDER SELECTOR (Only shown in Challenge Mode) -->
+      <div id="challenge-order-hint" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-200">
+        <div>
+          <i class="fa-solid fa-lightbulb text-amber-400 mr-1.5"></i>
+          <strong>Mode Tantangan Efisiensi:</strong> Anda juga dapat mengklik tahapan langsung pada bilah siklus di atas, namun melompati urutan SOP penambangan akan menurunkan skor K3, Lingkungan, dan menambah biaya penalti!
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 3: FINAL EVALUATION REPORT ==================== -->
+    <section id="screen-result" class="hidden flex-1 flex flex-col justify-center items-center py-4">
+      <div class="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+        <div class="h-2 w-full hazard-border"></div>
+        <div class="p-6 sm:p-8 space-y-6">
+          <!-- Header Report -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+            <div>
+              <span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider">
+                Laporan Evaluasi Kompetensi • Fase F
+              </span>
+              <h2 class="text-2xl sm:text-3xl font-extrabold text-white mt-2">
+                Simulasi Open Cast Mining Selesai!
+              </h2>
+              <p class="text-xs sm:text-sm text-slate-400 mt-1">
+                Kepala Teknik Tambang: <strong id="res-student-name" class="text-white">Siswa SMK Pertambangan</strong> • Mode: <span id="res-mode" class="text-amber-400 font-semibold">Kampanye</span>
+              </p>
+            </div>
+
+            <!-- Final Grade Badge -->
+            <div class="flex items-center gap-4 bg-slate-950 border border-slate-800 px-5 py-3.5 rounded-2xl">
+              <div class="text-right">
+                <div class="text-[11px] text-slate-400 uppercase font-bold">Nilai Akhir</div>
+                <div id="res-score" class="text-3xl font-black font-mono-tech text-amber-400">92</div>
+              </div>
+              <div id="res-grade" class="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-2xl font-black text-emerald-400">
+                A
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI Summary Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5">
+              <div class="text-xs text-slate-400">Sisa Anggaran</div>
+              <div id="res-budget" class="text-lg font-extrabold font-mono-tech text-amber-400 mt-1">$420,000</div>
+            </div>
+            <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5">
+              <div class="text-xs text-slate-400">Total Produksi</div>
+              <div id="res-coal" class="text-lg font-extrabold font-mono-tech text-sky-400 mt-1">52,000 Ton</div>
+            </div>
+            <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5">
+              <div class="text-xs text-slate-400">Skor K3 & Keselamatan</div>
+              <div id="res-k3" class="text-lg font-extrabold font-mono-tech text-emerald-400 mt-1">95%</div>
+            </div>
+            <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5">
+              <div class="text-xs text-slate-400">Kepatuhan Lingkungan</div>
+              <div id="res-env" class="text-lg font-extrabold font-mono-tech text-teal-400 mt-1">98%</div>
+            </div>
+          </div>
+
+          <!-- Competency Feedback Analysis -->
+          <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4 space-y-2">
+            <h3 class="text-sm font-bold text-amber-300 flex items-center gap-2">
+              <i class="fa-solid fa-chart-line"></i>
+              <span>Analisis Performa & Capaian Pembelajaran:</span>
+            </h3>
+            <p id="res-analysis" class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+              Luar biasa! Anda memahami urutan logis operasi Open Cast Mining, menjaga lapisan Top Soil di Top Soil Bank untuk reklamasi, serta menerapkan Backfilling secara progresif.
+            </p>
+          </div>
+
+          <!-- Key Learning Summary (7 Stages Recap) -->
+          <div class="space-y-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Rangkuman Konsep Kunci Open Cast Mining (Kelas XII Fase F):
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+              <div class="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
+                <strong class="text-amber-400">1. Ciri Khas Open Cast:</strong> Penambangan terbuka pada endapan mendatar (batubara/sedimen) di mana <em>overburden</em> ditimbun kembali ke area bekas galian (<em>backfilling</em>).
+              </div>
+              <div class="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
+                <strong class="text-emerald-400">2. Konservasi Top Soil:</strong> Tanah pucuk dikupas terpisah dan disimpan di <em>Top Soil Bank</em> agar unsur hara terjaga untuk tahap revegetasi.
+              </div>
+              <div class="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
+                <strong class="text-sky-400">3. Stripping Ratio (SR):</strong> Perbandingan volume tanah penutup (BCM) yang harus dikupas untuk mendapatkan 1 ton bahan galian.
+              </div>
+              <div class="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
+                <strong class="text-teal-400">4. Good Mining Practice:</strong> Integrasi keselamatan kerja (K3), pencegahan Air Asam Tambang (AAT), dan reklamasi berkelanjutan.
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex flex-wrap items-center justify-end gap-3 pt-2">
+            <button onclick="UI.toggleModal('modal-materi', true)" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-book"></i>
+              <span>Baca Materi Lengkap</span>
+            </button>
+            <button onclick="Game.returnToMenu()" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs sm:text-sm font-extrabold flex items-center gap-2 btn-mining">
+              <i class="fa-solid fa-rotate-right"></i>
+              <span>ULANGI SIMULASI</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODAL: RINGKASAN MATERI OPEN CAST ==================== -->
+  <div id="modal-materi" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-5 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-book-open text-amber-400"></i>
+          <h3 class="font-extrabold text-white text-base">Modul Ringkas: Sistem Penambangan Open Cast</h3>
+        </div>
+        <button onclick="UI.toggleModal('modal-materi', false)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="p-5 overflow-y-auto space-y-4 text-xs sm:text-sm text-slate-300 leading-relaxed">
+        <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 text-amber-200">
+          <strong>Definisi Open Cast Mining:</strong> Metode tambang terbuka yang diterapkan pada endapan bahan galian tabular/berlapis dan relatif horizontal (seperti batubara). Perbedaan utamanya dengan <em>Open Pit</em> adalah material <em>overburden</em> pada <em>Open Cast</em> langsung ditimbun kembali ke area bekas galian yang sudah selesai ditambang (<em>backfilling</em>).
+        </div>
+        <div class="space-y-2.5">
+          <h4 class="font-bold text-white text-sm">7 Tahapan Siklus Operasi Penambangan Open Cast:</h4>
+          <ol class="list-decimal list-inside space-y-2">
+            <li><strong class="text-amber-300">Land Clearing:</strong> Pembersihan vegetasi dan semak menggunakan Bulldozer di dalam batas IUP.</li>
+            <li><strong class="text-amber-300">Top Soil Removal:</strong> Pengupasan lapisan tanah pucuk (humus) dan penyimpanannya di <em>Top Soil Bank</em> agar tidak tercampur batuan penutup.</li>
+            <li><strong class="text-amber-300">Overburden Removal:</strong> Pembongkaran batuan penutup (bisa menggunakan <em>ripping</em> atau <em>drilling & blasting</em> jika batuan keras) serta pemuatan ke <em>Disposal / Backfill</em>.</li>
+            <li><strong class="text-amber-300">Coal / Ore Getting:</strong> Penggalian lapisan batubara/bijih secara selektif untuk mencegah <em>dilution</em> (tercampurnya pengotor) dan <em>coal losses</em>.</li>
+            <li><strong class="text-amber-300">Hauling:</strong> Pengangkutan hasil tambang menggunakan Dump Truck menuju <em>ROM Stockpile</em> dengan penyiraman jalan tambang (<em>Water Truck</em>) untuk pengendalian debu.</li>
+            <li><strong class="text-amber-300">Backfilling:</strong> Penimbunan kembali lubang bukaan tambang (<em>void</em>) secara progresif dengan material <em>overburden</em>.</li>
+            <li><strong class="text-amber-300">Reklamasi & Revegetasi:</strong> Penataan permukaan (<em>recontouring</em>), penghamparan kembali <em>Top Soil</em>, dan penanaman tanaman penutup/pionir.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="px-5 py-3 bg-slate-950 border-t border-slate-800 flex justify-end">
+        <button onclick="UI.toggleModal('modal-materi', false)" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs">
+          Tutup & Kembali ke Simulasi
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * 1. WEB AUDIO API SYNTHESIZER (BGM & SFX TANPA FILE EKSTERNAL)
+     * ============================================================================
+     */
+    const AudioEngine = (() => {
+      let ctx = null;
+      let bgmEnabled = true;
+      let sfxEnabled = true;
+      let bgmInterval = null;
+      let stepIndex = 0;
+
+      function initContext() {
+        if (!ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          ctx = new AudioCtx();
+        }
+        if (ctx.state === 'suspended') {
+          ctx.resume();
+        }
+      }
+
+      // Musik Latar Ambient Industrial / Strategi Ringan
+      function startBGM() {
+        initContext();
+        if (bgmInterval) clearInterval(bgmInterval);
+        // Tangga nada pentatonik minor yang tenang untuk konsentrasi belajar
+        const notes = [110.00, 130.81, 146.83, 164.81, 196.00, 164.81, 146.83, 130.81];
+        bgmInterval = setInterval(() => {
+          if (!bgmEnabled || !ctx) return;
+          const now = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const filter = ctx.createBiquadFilter();
+
+          osc.type = 'triangle';
+          const freq = notes[stepIndex % notes.length];
+          osc.frequency.setValueAtTime(freq, now);
+
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(420, now);
+
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.035, now + 0.15);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.1);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start(now);
+          osc.stop(now + 1.15);
+          stepIndex++;
+        }, 900);
+      }
+
+      function toggleBGM() {
+        initContext();
+        bgmEnabled = !bgmEnabled;
+        const label = document.getElementById('label-bgm');
+        const icon = document.getElementById('icon-bgm');
+        if (bgmEnabled) {
+          label.textContent = 'ON';
+          label.className = 'text-amber-400';
+          icon.className = 'fa-solid fa-music text-amber-400';
+          startBGM();
+        } else {
+          label.textContent = 'OFF';
+          label.className = 'text-slate-500';
+          icon.className = 'fa-solid fa-volume-xmark text-slate-500';
+        }
+      }
+
+      function toggleSFX() {
+        initContext();
+        sfxEnabled = !sfxEnabled;
+        const label = document.getElementById('label-sfx');
+        const icon = document.getElementById('icon-sfx');
+        if (sfxEnabled) {
+          label.textContent = 'ON';
+          label.className = 'text-emerald-400';
+          icon.className = 'fa-solid fa-volume-high text-emerald-400';
+          playClick();
+        } else {
+          label.textContent = 'OFF';
+          label.className = 'text-slate-500';
+          icon.className = 'fa-solid fa-volume-off text-slate-500';
+        }
+      }
+
+      function playClick() {
+        if (!sfxEnabled) return;
+        initContext();
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(780, now + 0.06);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      }
+
+      // Deru mesin diesel alat berat
+      function playEngineRumble(duration = 0.65) {
+        if (!sfxEnabled) return;
+        initContext();
+        const now = ctx.currentTime;
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+
+        osc1.type = 'sawtooth';
+        osc2.type = 'square';
+        osc1.frequency.setValueAtTime(48, now);
+        osc1.frequency.linearRampToValueAtTime(68, now + duration * 0.5);
+        osc1.frequency.linearRampToValueAtTime(44, now + duration);
+
+        osc2.frequency.setValueAtTime(24, now);
+        osc2.frequency.linearRampToValueAtTime(34, now + duration * 0.5);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(190, now);
+
+        gain.gain.setValueAtTime(0.01, now);
+        gain.gain.linearRampToValueAtTime(0.14, now + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + duration);
+        osc2.stop(now + duration);
+      }
+
+      // Klakson Dump Truck (2x beep khas tambang)
+      function playTruckHorn() {
+        if (!sfxEnabled) return;
+        initContext();
+        const now = ctx.currentTime;
+        [0, 0.22].forEach(offset => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(290, now + offset);
+          gain.gain.setValueAtTime(0.08, now + offset);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.14);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + offset);
+          osc.stop(now + offset + 0.15);
+        });
+      }
+
+      // Suara Ledakan Blasting (White Noise + Sub Boom)
+      function playBlastingExplosion() {
+        if (!sfxEnabled) return;
+        initContext();
+        const now = ctx.currentTime;
+        const duration = 1.4;
+
+        // White noise buffer
+        const bufferSize = ctx.sampleRate * duration;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.45));
+        }
+
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(600, now);
+        filter.frequency.exponentialRampToValueAtTime(80, now + duration);
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.45, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        noise.start(now);
+
+        // Sub-bass impact
+        const sub = ctx.createOscillator();
+        const subGain = ctx.createGain();
+        sub.type = 'sine';
+        sub.frequency.setValueAtTime(110, now);
+        sub.frequency.exponentialRampToValueAtTime(28, now + 0.8);
+        subGain.gain.setValueAtTime(0.4, now);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+        sub.connect(subGain);
+        subGain.connect(ctx.destination);
+        sub.start(now);
+        sub.stop(now + 0.9);
+      }
+
+      // Efek Sukses / Tahap Selesai
+      function playSuccess() {
+        if (!sfxEnabled) return;
+        initContext();
+        const now = ctx.currentTime;
+        const freqs = [523.25, 659.25, 783.99, 1046.50];
+        freqs.forEach((f, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, now + idx * 0.09);
+          gain.gain.setValueAtTime(0.1, now + idx * 0.09);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.09 + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.09);
+          osc.stop(now + idx * 0.09 + 0.36);
+        });
+      }
+
+      // Alarm Peringatan K3 / Kesalahan Prosedur
+      function playWarning() {
+        if (!sfxEnabled) return;
+        initContext();
+        const now = ctx.currentTime;
+        [0, 0.18].forEach(offset => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(440, now + offset);
+          osc.frequency.linearRampToValueAtTime(320, now + offset + 0.14);
+          gain.gain.setValueAtTime(0.09, now + offset);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.15);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + offset);
+          osc.stop(now + offset + 0.16);
+        });
+      }
+
+      return {
+        startBGM,
+        toggleBGM,
+        toggleSFX,
+        playClick,
+        playEngineRumble,
+        playTruckHorn,
+        playBlastingExplosion,
+        playSuccess,
+        playWarning
+      };
+    })();
+
+    /**
+     * ============================================================================
+     * 2. DATA KURIKULUM & 7 TAHAPAN SIKLUS OPEN CAST MINING (FASE F)
+     * ============================================================================
+     */
+    const STAGES_DATA = [
+      {
+        id: 0,
+        shortName: '1. Land Clearing',
+        title: 'Tahap 1: Land Clearing (Pembersihan Lahan)',
+        equipment: 'Bulldozer D85ESS & Chainsaw',
+        icon: 'fa-tree',
+        desc: 'Membersihkan pepohonan, semak belukar, dan akar tanaman di permukaan lahan bukaan tambang sesuai batas patok Izin Usaha Pertambangan (IUP).',
+        actionLabel: 'OPERASIKAN BULLDOZER (BERSIHKAN LAHAN)',
+        actionIcon: 'fa-tractor',
+        costPerStep: 25000,
+        obPerStep: 0,
+        coalPerStep: 0,
+        specialAction: {
+          label: 'Cek Patok Batas IUP & Zona Penyangga Sungai',
+          bonusText: 'Batas IUP terverifikasi aman! Kepatuhan Lingkungan +3%.',
+          envBonus: 3,
+          k3Bonus: 2
+        },
+        question: 'Sebelum mengoperasikan Bulldozer untuk Land Clearing, ditemukan zona sempadan sungai (riparian) di sisi timur blok tambang. Apa keputusan teknis yang paling tepat?',
+        options: [
+          {
+            text: 'Membabat seluruh vegetasi hingga bibir sungai agar area kerja luas.',
+            correct: false,
+            feedback: 'Salah! Membabat sempadan sungai melanggar peraturan lingkungan dan memicu erosi serta sedimentasi sungai.',
+            k3Delta: -5,
+            envDelta: -15,
+            costDelta: 15000
+          },
+          {
+            text: 'Memasang patok batas aman (buffer zone) dan hanya membersihkan area di dalam batas desain pit.',
+            correct: true,
+            feedback: 'Tepat sekali! Pemasangan patok batas menjaga sempadan sungai dan memastikan pembukaan lahan sesuai dokumen AMDAL.',
+            k3Delta: 3,
+            envDelta: 5,
+            costDelta: 0
+          },
+          {
+            text: 'Membakar semak belukar agar pembersihan lahan lebih cepat dan hemat solar.',
+            correct: false,
+            feedback: 'Berbahaya & ilegal! Pembakaran lahan dilarang keras dalam kaidah Good Mining Practice (GMP).',
+            k3Delta: -12,
+            envDelta: -20,
+            costDelta: 20000
+          }
+        ]
+      },
+      {
+        id: 1,
+        shortName: '2. Top Soil',
+        title: 'Tahap 2: Top Soil Removal (Pengupasan Tanah Pucuk)',
+        equipment: 'Excavator PC300 & Dump Truck 30T',
+        icon: 'fa-layer-group',
+        desc: 'Mengupas lapisan tanah pucuk (humus) setebal ±0.5–1.5 meter yang kaya unsur hara, lalu menyimpannya secara terpisah ke Top Soil Bank.',
+        actionLabel: 'KUPAS & SIMPAN KE TOP SOIL BANK',
+        actionIcon: 'fa-truck-ramp-box',
+        costPerStep: 35000,
+        obPerStep: 0,
+        coalPerStep: 0,
+        specialAction: {
+          label: 'Pasang Drainase & Tanaman Penutup di Top Soil Bank',
+          bonusText: 'Top Soil Bank terlindung dari erosi air hujan! Lingkungan +4%.',
+          envBonus: 4,
+          k3Bonus: 0
+        },
+        question: 'Ke mana material Top Soil (tanah pucuk) hasil pengupasan harus ditempatkan agar dapat digunakan kembali pada tahap reklamasi akhir?',
+        options: [
+          {
+            text: 'Dicampur langsung dengan batuan penutup (Overburden) di Waste Dump.',
+            correct: false,
+            feedback: 'Keliru! Mencampur Top Soil dengan Overburden merusak kesuburan tanah dan berpotensi tercemar batuan pembentuk asam (PAF).',
+            k3Delta: 0,
+            envDelta: -15,
+            costDelta: 10000
+          },
+          {
+            text: 'Ditempatkan khusus di Top Soil Bank yang datar, berdrainase baik, dan diberi tanda.',
+            correct: true,
+            feedback: 'Benar! Top Soil Bank menjaga mikroorganisme dan unsur hara tetap hidup hingga waktu revegetasi tiba.',
+            k3Delta: 2,
+            envDelta: 5,
+            costDelta: 0
+          },
+          {
+            text: 'Dibuang ke alur sungai terdekat agar tidak menumpuk di area tambang.',
+            correct: false,
+            feedback: 'Pelanggaran berat! Membuang tanah ke badan air menyebabkan pendangkalan dan pencemaran berat.',
+            k3Delta: -5,
+            envDelta: -25,
+            costDelta: 30000
+          }
+        ]
+      },
+      {
+        id: 2,
+        shortName: '3. Overburden',
+        title: 'Tahap 3: Overburden Removal (Pengupasan Tanah Penutup)',
+        equipment: 'Drilling Rig, Blasting Crew & Excavator PC800',
+        icon: 'fa-hill-rockslide',
+        desc: 'Membongkar dan memindahkan lapisan batuan penutup (Overburden/OB) di atas lapisan batubara dengan membentuk geometri jenjang (bench) yang stabil.',
+        actionLabel: 'GALI & ANGKUT OVERBURDEN (OB)',
+        actionIcon: 'fa-explosion',
+        hasBlasting: true,
+        costPerStep: 65000,
+        obPerStep: 62500, // Total 4 steps = 250,000 BCM
+        coalPerStep: 0,
+        specialAction: {
+          label: 'Lakukan Peledakan Terkendali (Drilling & Blasting)',
+          bonusText: 'Fragmentasi batuan keras optimal! Produktivitas gali OB meningkat.',
+          envBonus: 1,
+          k3Bonus: 3
+        },
+        question: 'Hasil uji geoteknik menunjukkan lapisan Overburden berupa batupasir keras (UCS > 45 MPa) dan tinggi lereng jenjang mencapai 12 meter. Tindakan teknis apa yang wajib dilakukan?',
+        options: [
+          {
+            text: 'Memaksa menggali langsung dengan excavator kecil tanpa pemberaian dan membuat dinding tegak 90°.',
+            correct: false,
+            feedback: 'Sangat berbahaya! Dinding tegak 90° rawan longsor (slope failure) dan merusak bucket excavator.',
+            k3Delta: -18,
+            envDelta: -5,
+            costDelta: 25000
+          },
+          {
+            text: 'Melakukan Drilling & Blasting untuk pemberaian batuan serta membentuk sudut kemiringan jenjang (bench slope) aman.',
+            correct: true,
+            feedback: 'Sangat tepat! Pemberaian batuan keras dan geometri jenjang (bench) yang sesuai rekomendasi geoteknik mencegah longsor lereng.',
+            k3Delta: 5,
+            envDelta: 2,
+            costDelta: -10000
+          },
+          {
+            text: 'Meledakkan area tanpa mengevakuasi alat berat agar menghemat waktu siklus.',
+            correct: false,
+            feedback: 'Fatal! SOP Peledakan mewajibkan radius aman 300-500 m bebas dari manusia dan alat berat.',
+            k3Delta: -25,
+            envDelta: -5,
+            costDelta: 30000
+          }
+        ]
+      },
+      {
+        id: 3,
+        shortName: '4. Coal Getting',
+        title: 'Tahap 4: Coal / Ore Getting (Penggalian Batubara)',
+        equipment: 'Excavator Backhoe PC400 (Flat Bucket)',
+        icon: 'fa-gem',
+        desc: 'Melakukan pembersihan permukaan seam batubara (coal cleaning) dan penggalian lapisan batubara secara selektif agar kualitas kalori tetap terjaga.',
+        actionLabel: 'GALI LAPISAN BATUBARA (COAL GETTING)',
+        actionIcon: 'fa-digging',
+        costPerStep: 45000,
+        obPerStep: 0,
+        coalPerStep: 13500, // 4 steps = 54,000 Ton (or 17,000 in challenge)
+        specialAction: {
+          label: 'Lakukan Coal Cleaning & Pompa Sump Pit',
+          bonusText: 'Permukaan seam bersih dari parting & air pit terkendali! Kualitas optimal.',
+          envBonus: 2,
+          k3Bonus: 3
+        },
+        question: 'Saat penggalian lapisan batubara (Coal Getting), terdapat lapisan tipis batuan pengotor (parting) dan rembesan air di lantai pit. Apa prosedur terbaiknya?',
+        options: [
+          {
+            text: 'Menggali batubara beserta batu pengotornya sekaligus agar tonase cepat tercapai.',
+            correct: false,
+            feedback: 'Salah! Mencampur parting menyebabkan dilution (kadar abu meningkat & nilai kalori batubara turun drastis).',
+            k3Delta: 0,
+            envDelta: -5,
+            costDelta: 20000
+          },
+          {
+            text: 'Memompa air pit ke kolam pengendap (Settling Pond) dan memisahkan lapisan parting sebelum menggali batubara.',
+            correct: true,
+            feedback: 'Tepat! Pemisahan parting menjaga kualitas batubara (low ash) dan air pit wajib diolah di Settling Pond sebelum dilepas ke sungai.',
+            k3Delta: 3,
+            envDelta: 5,
+            costDelta: 0
+          },
+          {
+            text: 'Membiarkan air asam tambang menggenangi lantai pit dan membuangnya langsung ke luar tambang.',
+            correct: false,
+            feedback: 'Melanggar baku mutu lingkungan! Air tambang harus dinetralkan (kapur/tawas) di Settling Pond.',
+            k3Delta: -5,
+            envDelta: -18,
+            costDelta: 15000
+          }
+        ]
+      },
+      {
+        id: 4,
+        shortName: '5. Hauling',
+        title: 'Tahap 5: Hauling (Pengangkutan ke ROM Stockpile)',
+        equipment: 'Heavy Dump Truck (HD 785) & Water Truck',
+        icon: 'fa-truck-moving',
+        desc: 'Mengangkut batubara dari front penambangan menuju ROM Stockpile / Crushing Plant melalui jalan angkut (haul road) dengan standar keselamatan tinggi.',
+        actionLabel: 'ANGKUT BATUBARA KE ROM STOCKPILE',
+        actionIcon: 'fa-truck-fast',
+        hasHorn: true,
+        costPerStep: 40000,
+        obPerStep: 0,
+        coalPerStep: 0,
+        specialAction: {
+          label: 'Operasikan Water Truck (Penyiraman Jalan Angkut)',
+          bonusText: 'Debu jalan tambang (PM10) berkurang drastis! Jarak pandang operator aman.',
+          envBonus: 4,
+          k3Bonus: 4
+        },
+        question: 'Kondisi jalan angkut tambang (Haul Road) kering dan berdebu tebal sehingga mengurangi jarak pandang pengemudi Dump Truck. Apa tindakan pengendalian wajib?',
+        options: [
+          {
+            text: 'Meminta sopir menambah kecepatan agar cepat keluar dari area berdebu.',
+            correct: false,
+            feedback: 'Sangat berbahaya! Kecepatan tinggi saat jarak pandang terbatas memicu tabrakan antar unit HD.',
+            k3Delta: -20,
+            envDelta: -5,
+            costDelta: 15000
+          },
+          {
+            text: 'Mengerahkan Water Truck untuk penyiraman berkala, membatasi kecepatan maksimal, dan mewajibkan lampu rotary & komunikasi radio.',
+            correct: true,
+            feedback: 'Sempurna! Pengendalian debu dengan Water Truck menjaga kesehatan lingkungan sekitar dan mencegah kecelakaan lalu lintas tambang.',
+            k3Delta: 5,
+            envDelta: 4,
+            costDelta: 0
+          },
+          {
+            text: 'Mengisi muatan Dump Truck melebihi kapasitas bak (overloading) agar ritase berkurang.',
+            correct: false,
+            feedback: 'Tidak aman! Overloading merusak sistem rem/suspensi truk dan menyebabkan tumpahan batubara di jalan.',
+            k3Delta: -12,
+            envDelta: -5,
+            costDelta: 18000
+          }
+        ]
+      },
+      {
+        id: 5,
+        shortName: '6. Backfilling',
+        title: 'Tahap 6: Backfilling (Penimbunan Kembali Void)',
+        equipment: 'Dump Truck, Bulldozer & Compactor',
+        icon: 'fa-mound',
+        desc: 'Ciri khas utama Open Cast Mining: menimbun kembali lubang bekas galian (void) menggunakan material Overburden dari bukaan tambang berikutnya secara progresif.',
+        actionLabel: 'TIMBUN KEMBALI LUBANG GALIAN (BACKFILL)',
+        actionIcon: 'fa-fill-drip',
+        costPerStep: 45000,
+        obPerStep: 0,
+        coalPerStep: 0,
+        specialAction: {
+          label: 'Enkapsulasi Batuan PAF (Potentially Acid Forming)',
+          bonusText: 'Batuan pembentuk asam dikubur di lapisan bawah dengan NAF! AAT dicegah.',
+          envBonus: 5,
+          k3Bonus: 2
+        },
+        question: 'Mengapa sistem penambangan Open Cast menerapkan metode Backfilling (penimbunan kembali void) secara progresif, dan bagaimana penanganan batuan pembentuk asam (PAF)?',
+        options: [
+          {
+            text: 'Agar lubang bekas tambang tidak dibiarkan menganga, dan batuan PAF dikapsulasi di bagian bawah ditutupi batuan NAF (Non-Acid Forming).',
+            correct: true,
+            feedback: 'Luar biasa! Backfilling progresif meminimalkan luas lahan terganggu dan enkapsulasi PAF-NAF mencegah terbentuknya Air Asam Tambang (AAT).',
+            k3Delta: 3,
+            envDelta: 6,
+            costDelta: 0
+          },
+          {
+            text: 'Menempatkan batuan pembentuk asam (PAF) di lapisan paling atas agar terkena air hujan dan oksigen.',
+            correct: false,
+            feedback: 'Keliru! Reaksi batuan sulfida (PAF) dengan air dan oksigen justru menghasilkan Air Asam Tambang (pH rendah) yang beracun.',
+            k3Delta: 0,
+            envDelta: -18,
+            costDelta: 15000
+          },
+          {
+            text: 'Membiarkan seluruh lubang pit tetap terbuka tanpa penimbunan demi menghemat biaya bahan bakar.',
+            correct: false,
+            feedback: 'Menyalahi konsep Open Cast Mining dan kewajiban reklamasi pascatambang.',
+            k3Delta: -5,
+            envDelta: -20,
+            costDelta: 20000
+          }
+        ]
+      },
+      {
+        id: 6,
+        shortName: '7. Reklamasi',
+        title: 'Tahap 7: Reklamasi & Revegetasi Lahan',
+        equipment: 'Bulldozer Spreading, Hydroseeder & Tim Revegetasi',
+        icon: 'fa-seedling',
+        desc: 'Menata kontur lahan timbunan (recontouring), menghamparkan kembali Top Soil dari Top Soil Bank, dan menanam tanaman penutup (cover crop) serta pohon pionir.',
+        actionLabel: 'TEBAR TOP SOIL & TANAM POHON PIONIR',
+        actionIcon: 'fa-tree',
+        costPerStep: 30000,
+        obPerStep: 0,
+        coalPerStep: 0,
+        specialAction: {
+          label: 'Tanam Cover Crop (Legume) & Pohon Sengon/Akasia',
+          bonusText: 'Erosi permukaan tertahan & ekosistem mulai pulih! Lingkungan +5%.',
+          envBonus: 5,
+          k3Bonus: 2
+        },
+        question: 'Urutan teknis yang benar dalam melaksanakan tahap Reklamasi & Revegetasi pada lahan bekas tambang Open Cast adalah...',
+        options: [
+          {
+            text: 'Langsung menanam bibit pohon keras di atas batuan keras tanpa penataan lahan maupun Top Soil.',
+            correct: false,
+            feedback: 'Gagal tumbuh! Tanaman tidak akan mendapatkan nutrisi dan mudah mati di atas batuan kompak.',
+            k3Delta: 0,
+            envDelta: -15,
+            costDelta: 12000
+          },
+          {
+            text: 'Penataan kontur lahan (recontouring) → Penebaran kembali Top Soil → Penanaman Cover Crop (penutup tanah) → Penanaman pohon pionir & lokal.',
+            correct: true,
+            feedback: 'Sempurna! Penataan lereng mencegah erosi, Top Soil menyediakan media tanam, dan Cover Crop mengikat nitrogen sebelum pohon lokal tumbuh.',
+            k3Delta: 3,
+            envDelta: 6,
+            costDelta: 0
+          },
+          {
+            text: 'Menyemprotkan limbah oli bekas di permukaan tanah agar debu tidak beterbangan.',
+            correct: false,
+            feedback: 'Pelanggaran B3 berat! Oli bekas adalah limbah B3 yang mencemari tanah dan air tanah.',
+            k3Delta: -10,
+            envDelta: -25,
+            costDelta: 25000
+          }
+        ]
+      }
+    ];
+
+    /**
+     * ============================================================================
+     * 3. 2D CROSS-SECTION MINE PIT CANVAS ENGINE
+     * ============================================================================
+     */
+    const MineCanvas = (() => {
+      let canvas, ctx;
+      let width = 800, height = 400;
+      let animFrame = null;
+      let tick = 0;
+
+      // Visual state interpolated smoothly
+      const visual = {
+        treesCleared: 0,      // 0..1
+        topSoilRemoved: 0,    // 0..1
+        topSoilBankHeight: 0, // 0..1
+        obRemoved: 0,         // 0..1
+        coalRemoved: 0,       // 0..1
+        stockpileHeight: 0,   // 0..1
+        backfillProgress: 0,  // 0..1
+        reclamationProgress: 0, // 0..1
+        activeMachineX: 0.25,
+        machineActionTimer: 0,
+        dustParticles: [],
+        explosionParticles: [],
+        waterSprayTimer: 0
+      };
+
+      function init() {
+        canvas = document.getElementById('mineCanvas');
+        ctx = canvas.getContext('2d');
+        resize();
+        window.addEventListener('resize', resize);
+        if (!animFrame) loop();
+      }
+
+      function resize() {
+        const wrapper = document.getElementById('canvas-wrapper');
+        if (!wrapper || !canvas) return;
+        const rect = wrapper.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        width = rect.width;
+        height = rect.height;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function spawnDust(xRatio, yRatio, color = 'rgba(217, 198, 165, 0.65)', count = 12) {
+        for (let i = 0; i < count; i++) {
+          visual.dustParticles.push({
+            x: xRatio * width + (Math.random() - 0.5) * 40,
+            y: yRatio * height + (Math.random() - 0.5) * 15,
+            vx: (Math.random() - 0.5) * 1.6,
+            vy: -Math.random() * 1.4 - 0.3,
+            radius: Math.random() * 6 + 3,
+            alpha: 0.85,
+            color
+          });
+        }
+      }
+
+      function triggerExplosionEffect() {
+        const cx = width * 0.48;
+        const cy = height * 0.46;
+        for (let i = 0; i < 48; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 5 + 1.5;
+          visual.explosionParticles.push({
+            x: cx,
+            y: cy,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 2.5,
+            radius: Math.random() * 7 + 3,
+            alpha: 1,
+            color: i % 2 === 0 ? '#f59e0b' : '#78716c'
+          });
+        }
+      }
+
+      function triggerWaterSpray() {
+        visual.waterSprayTimer = 90;
+      }
+
+      function pulseMachine() {
+        visual.machineActionTimer = 45;
+      }
+
+      function syncWithGameState(state) {
+        // Compute target visual ratios from stage progresses
+        const p = state.stageProgress;
+        visual.treesCleared = p[0] / 100;
+        visual.topSoilRemoved = p[1] / 100;
+        visual.topSoilBankHeight = Math.max(0, (p[1] / 100) - (p[6] / 100) * 0.85);
+        visual.obRemoved = p[2] / 100;
+        visual.coalRemoved = p[3] / 100;
+        visual.stockpileHeight = p[4] / 100;
+        visual.backfillProgress = p[5] / 100;
+        visual.reclamationProgress = p[6] / 100;
+      }
+
+      function drawSkyAndBackground() {
+        // Sky gradient
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, height * 0.45);
+        skyGrad.addColorStop(0, '#0c4a6e');
+        skyGrad.addColorStop(0.6, '#0284c7');
+        skyGrad.addColorStop(1, '#7dd3fc');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, width, height);
+
+        // Distant Hills
+        ctx.fillStyle = '#1e3a5f';
+        ctx.beginPath();
+        ctx.moveTo(0, height * 0.36);
+        ctx.quadraticCurveTo(width * 0.25, height * 0.22, width * 0.55, height * 0.35);
+        ctx.quadraticCurveTo(width * 0.8, height * 0.25, width, height * 0.34);
+        ctx.lineTo(width, height * 0.45);
+        ctx.lineTo(0, height * 0.45);
+        ctx.closePath();
+        ctx.fill();
+
+        // Moving Clouds
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+        const cloudOffset = (tick * 0.25) % (width + 200);
+        [0, 320, 640].forEach((offset, idx) => {
+          const cx = ((cloudOffset + offset) % (width + 200)) - 100;
+          const cy = height * (0.1 + idx * 0.04);
+          ctx.beginPath();
+          ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+          ctx.arc(cx + 16, cy - 4, 22, 0, Math.PI * 2);
+          ctx.arc(cx + 34, cy, 16, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function drawGeologicalLayers() {
+        const groundY = height * 0.38;
+        const topSoilH = height * 0.06;
+        const obH = height * 0.24;
+        const coalH = height * 0.13;
+        const floorY = groundY + topSoilH + obH + coalH;
+
+        // Pit horizontal boundaries: Left Bank (0..0.24), Pit Zone (0.24..0.72), Right ROM Zone (0.72..1.0)
+        const pitL = width * 0.24;
+        const pitR = width * 0.72;
+
+        // 1. UNDERBURDEN / BASEMENT FLOOR (Bottom rock)
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(0, floorY, width, height - floorY);
+
+        // 2. COAL SEAM (Black lustrous layer)
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, groundY + topSoilH + obH, width, coalH);
+        // Coal seam texture lines
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1.5;
+        for (let y = groundY + topSoilH + obH + 6; y < floorY; y += 8) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+
+        // 3. OVERBURDEN LAYER (Sandstone/Mudstone)
+        ctx.fillStyle = '#78716c';
+        ctx.fillRect(0, groundY + topSoilH, width, obH);
+        // Geological strata lines in OB
+        ctx.strokeStyle = '#57534e';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, groundY + topSoilH + obH * 0.5);
+        ctx.lineTo(width, groundY + topSoilH + obH * 0.5);
+        ctx.stroke();
+
+        // 4. TOP SOIL LAYER (Rich dark brown humus)
+        ctx.fillStyle = '#713f12';
+        ctx.fillRect(0, groundY, width, topSoilH);
+
+        // 5. CARVE OUT THE OPEN CAST PIT (Dynamic Benches!)
+        const tsCut = visual.topSoilRemoved * topSoilH;
+        const obCut = visual.obRemoved * obH;
+        const coalCut = visual.coalRemoved * coalH;
+        const totalCutDepth = tsCut + obCut + coalCut;
+
+        if (totalCutDepth > 1) {
+          // Sky/Void cutout inside the pit with stepped benches
+          const benchInset = Math.min(45, totalCutDepth * 0.35);
+          ctx.fillStyle = '#0ea5e9';
+          const pitSkyGrad = ctx.createLinearGradient(0, groundY - 5, 0, groundY + totalCutDepth);
+          pitSkyGrad.addColorStop(0, '#7dd3fc');
+          pitSkyGrad.addColorStop(1, '#bae6fd');
+          ctx.fillStyle = pitSkyGrad;
+
+          ctx.beginPath();
+          ctx.moveTo(pitL, groundY);
+          ctx.lineTo(pitR, groundY);
+          ctx.lineTo(pitR - benchInset, groundY + totalCutDepth);
+          ctx.lineTo(pitL + benchInset, groundY + totalCutDepth);
+          ctx.closePath();
+          ctx.fill();
+
+          // Draw Bench Step Lines on Left and Right Pit Slopes
+          ctx.strokeStyle = '#44403c';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(pitL, groundY);
+          ctx.lineTo(pitL + benchInset, groundY + totalCutDepth);
+          ctx.moveTo(pitR, groundY);
+          ctx.lineTo(pitR - benchInset, groundY + totalCutDepth);
+          ctx.stroke();
+        }
+
+        // 6. BACKFILLING MATERIAL INSIDE PIT (Stage 6)
+        if (visual.backfillProgress > 0.01) {
+          const maxPitDepth = topSoilH + obH + coalH;
+          const fillH = visual.backfillProgress * (maxPitDepth - topSoilH * 0.4);
+          const benchInset = 42;
+          const topFillY = groundY + maxPitDepth - fillH;
+
+          ctx.fillStyle = '#a8a29e';
+          ctx.beginPath();
+          ctx.moveTo(pitL + benchInset * 0.35, topFillY);
+          ctx.lineTo(pitR - benchInset * 0.35, topFillY);
+          ctx.lineTo(pitR - benchInset, groundY + maxPitDepth);
+          ctx.lineTo(pitL + benchInset, groundY + maxPitDepth);
+          ctx.closePath();
+          ctx.fill();
+
+          // Label Backfill
+          if (visual.backfillProgress > 0.25) {
+            ctx.fillStyle = '#1c1917';
+            ctx.font = 'bold 11px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('AREA BACKFILLING (TIMBUNAN OB)', (pitL + pitR) / 2, topFillY + fillH * 0.55);
+          }
+        }
+
+        // 7. RECLAMATION TOP SOIL SPREAD & GREEN GRASS (Stage 7)
+        if (visual.reclamationProgress > 0.01) {
+          const recWidth = (pitR - pitL) * visual.reclamationProgress;
+          ctx.fillStyle = '#713f12';
+          ctx.fillRect(pitL, groundY, recWidth, topSoilH * 0.85);
+
+          ctx.fillStyle = '#16a34a';
+          ctx.fillRect(pitL, groundY - 4, recWidth, 6);
+
+          // Grow new pioneer trees as reclamation progresses
+          const treeCount = Math.floor(visual.reclamationProgress * 7);
+          for (let i = 0; i < treeCount; i++) {
+            const tx = pitL + 25 + i * ((pitR - pitL - 50) / 6);
+            drawTree(tx, groundY - 4, 0.75 + (i % 2) * 0.2, '#22c55e');
+          }
+        }
+
+        // 8. UNDISTURBED SURFACE GRASS & ORIGINAL VEGETATION
+        // Left intact grass
+        ctx.fillStyle = '#15803d';
+        ctx.fillRect(0, groundY - 4, pitL, 5);
+        // Right intact grass (ROM area)
+        ctx.fillRect(pitR, groundY - 4, width - pitR, 5);
+
+        // Pit zone initial vegetation (disappears as Land Clearing progresses)
+        if (visual.treesCleared < 1) {
+          const remainingRatio = 1 - visual.treesCleared;
+          const vegWidth = (pitR - pitL) * remainingRatio;
+          ctx.fillStyle = '#16a34a';
+          ctx.fillRect(pitR - vegWidth, groundY - 4, vegWidth, 5);
+
+          const numTrees = 6;
+          for (let i = 0; i < numTrees; i++) {
+            const frac = (i + 0.5) / numTrees;
+            if (frac >= visual.treesCleared) {
+              const tx = pitL + frac * (pitR - pitL);
+              drawTree(tx, groundY - 4, 1.0, '#15803d');
+            }
+          }
+        }
+
+        // Permanent border trees on far left
+        drawTree(width * 0.04, groundY - 4, 0.9, '#166534');
+        drawTree(width * 0.08, groundY - 4, 1.1, '#15803d');
+
+        // 9. TOP SOIL BANK (Left side mound)
+        if (visual.topSoilBankHeight > 0.02) {
+          const bankBaseX = width * 0.16;
+          const bankW = width * 0.12;
+          const bankH = visual.topSoilBankHeight * 34;
+          ctx.fillStyle = '#854d0e';
+          ctx.beginPath();
+          ctx.moveTo(bankBaseX - bankW / 2, groundY - 2);
+          ctx.quadraticCurveTo(bankBaseX, groundY - 2 - bankH * 1.8, bankBaseX + bankW / 2, groundY - 2);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.fillStyle = '#fef08a';
+          ctx.font = 'bold 10px Inter';
+          ctx.textAlign = 'center';
+          ctx.fillText('TOP SOIL BANK', bankBaseX, groundY - bankH - 6);
+        }
+
+        // 10. ROM STOCKPILE (Right side coal mound)
+        if (visual.stockpileHeight > 0.02) {
+          const romX = width * 0.86;
+          const romW = width * 0.18;
+          const romH = visual.stockpileHeight * 44;
+          ctx.fillStyle = '#0f172a';
+          ctx.beginPath();
+          ctx.moveTo(romX - romW / 2, groundY - 2);
+          ctx.lineTo(romX - romW * 0.2, groundY - 2 - romH);
+          ctx.lineTo(romX + romW * 0.2, groundY - 2 - romH);
+          ctx.lineTo(romX + romW / 2, groundY - 2);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          ctx.fillStyle = '#e0f2fe';
+          ctx.font = 'bold 10px Inter';
+          ctx.textAlign = 'center';
+          ctx.fillText('ROM STOCKPILE', romX, groundY - romH - 8);
+        }
+
+        // Layer Labels on Left Margin
+        ctx.font = 'bold 10px JetBrains Mono';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#fde68a';
+        ctx.fillText('TOP SOIL', 8, groundY + topSoilH * 0.68);
+        ctx.fillStyle = '#e7e5e4';
+        ctx.fillText('OVERBURDEN', 8, groundY + topSoilH + obH * 0.55);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText('BATUBARA', 8, groundY + topSoilH + obH + coalH * 0.62);
+      }
+
+      function drawTree(x, y, scale = 1, leafColor = '#16a34a') {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        // Trunk
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(-3, -16, 6, 16);
+        // Foliage
+        ctx.fillStyle = leafColor;
+        ctx.beginPath();
+        ctx.arc(0, -22, 11, 0, Math.PI * 2);
+        ctx.arc(-7, -17, 8, 0, Math.PI * 2);
+        ctx.arc(7, -17, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawHeavyEquipment(currentStageId) {
+        const groundY = height * 0.38;
+        const topSoilH = height * 0.06;
+        const obH = height * 0.24;
+        const coalH = height * 0.13;
+
+        const pitL = width * 0.24;
+        const pitR = width * 0.72;
+        const bob = Math.sin(tick * 0.2) * (visual.machineActionTimer > 0 ? 2 : 0.6);
+
+        let mx = pitL + (pitR - pitL) * 0.45;
+        let my = groundY - 2;
+
+        if (currentStageId === 0) {
+          mx = pitL + visual.treesCleared * (pitR - pitL - 40);
+          my = groundY - 2;
+          drawBulldozer(mx, my + bob);
+        } else if (currentStageId === 1) {
+          mx = pitL + visual.topSoilRemoved * (pitR - pitL - 50);
+          my = groundY + visual.topSoilRemoved * topSoilH * 0.6;
+          drawExcavator(mx, my + bob);
+          drawDumpTruck(mx - 55, groundY - 2);
+        } else if (currentStageId === 2) {
+          mx = pitL + 45 + visual.obRemoved * (pitR - pitL - 110);
+          my = groundY + topSoilH + visual.obRemoved * obH * 0.85;
+          drawExcavator(mx, my + bob);
+          drawDumpTruck(mx + 55, my);
+        } else if (currentStageId === 3) {
+          mx = pitL + 50 + visual.coalRemoved * (pitR - pitL - 120);
+          my = groundY + topSoilH + obH + visual.coalRemoved * coalH * 0.8;
+          drawExcavator(mx, my + bob);
+        } else if (currentStageId === 4) {
+          // Hauling Truck moving along haul road to ROM
+          const haulProgress = (tick * 0.008) % 1;
+          mx = pitR - 20 + haulProgress * (width * 0.2);
+          my = groundY - 2;
+          drawDumpTruck(mx, my + bob, true);
+          if (visual.waterSprayTimer > 0) {
+            drawWaterTruck(pitR + 20, groundY - 2);
+          }
+        } else if (currentStageId === 5) {
+          const maxPitDepth = topSoilH + obH + coalH;
+          const fillH = visual.backfillProgress * (maxPitDepth - topSoilH * 0.4);
+          mx = (pitL + pitR) / 2 + Math.sin(tick * 0.04) * 50;
+          my = groundY + maxPitDepth - fillH;
+          drawBulldozer(mx, my + bob);
+        } else if (currentStageId === 6) {
+          mx = pitL + visual.reclamationProgress * (pitR - pitL - 40);
+          my = groundY - 3;
+          drawBulldozer(mx, my + bob);
+        }
+      }
+
+      function drawBulldozer(x, y) {
+        ctx.save();
+        ctx.translate(x, y);
+        // Tracks
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.roundRect(-18, -8, 36, 8, 4);
+        ctx.fill();
+        // Body
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(-14, -20, 26, 12);
+        // Cabin
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-10, -29, 14, 9);
+        // Blade
+        ctx.fillStyle = '#d97706';
+        ctx.beginPath();
+        ctx.moveTo(14, -18);
+        ctx.lineTo(22, -18);
+        ctx.lineTo(24, 0);
+        ctx.lineTo(14, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawExcavator(x, y) {
+        ctx.save();
+        ctx.translate(x, y);
+        // Tracks
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.roundRect(-18, -8, 36, 8, 4);
+        ctx.fill();
+        // Upper House
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(-16, -22, 28, 14);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(2, -20, 8, 8);
+        // Boom & Arm
+        const swing = visual.machineActionTimer > 0 ? Math.sin(tick * 0.35) * 0.25 : 0;
+        ctx.rotate(swing);
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(10, -16);
+        ctx.lineTo(28, -32);
+        ctx.lineTo(38, -12);
+        ctx.stroke();
+        // Bucket
+        ctx.fillStyle = '#334155';
+        ctx.beginPath();
+        ctx.arc(38, -10, 6, 0, Math.PI);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawDumpTruck(x, y, loaded = false) {
+        ctx.save();
+        ctx.translate(x, y);
+        // Body Chassis
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(-20, -16, 40, 9);
+        // Cabin
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(10, -25, 10, 9);
+        // Dump Vessel
+        ctx.fillStyle = '#b45309';
+        ctx.beginPath();
+        ctx.moveTo(-22, -16);
+        ctx.lineTo(-25, -27);
+        ctx.lineTo(8, -27);
+        ctx.lineTo(8, -16);
+        ctx.closePath();
+        ctx.fill();
+
+        if (loaded) {
+          ctx.fillStyle = '#0f172a';
+          ctx.beginPath();
+          ctx.arc(-8, -27, 11, Math.PI, 0);
+          ctx.fill();
+        }
+
+        // Wheels
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(-12, -5, 5.5, 0, Math.PI * 2);
+        ctx.arc(12, -5, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawWaterTruck(x, y) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = '#0284c7';
+        ctx.beginPath();
+        ctx.roundRect(-20, -24, 28, 15, 6);
+        ctx.fill();
+        ctx.fillStyle = '#e0f2fe';
+        ctx.fillRect(8, -22, 10, 13);
+        // Water spray mist
+        ctx.fillStyle = 'rgba(186, 230, 253, 0.55)';
+        ctx.beginPath();
+        ctx.arc(-28, -10, 12 + Math.sin(tick * 0.4) * 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(-11, -5, 5, 0, Math.PI * 2);
+        ctx.arc(11, -5, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function updateAndDrawParticles() {
+        // Dust
+        for (let i = visual.dustParticles.length - 1; i >= 0; i--) {
+          const p = visual.dustParticles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.alpha -= 0.015;
+          if (p.alpha <= 0) {
+            visual.dustParticles.splice(i, 1);
+            continue;
+          }
+          ctx.save();
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Explosion
+        for (let i = visual.explosionParticles.length - 1; i >= 0; i--) {
+          const p = visual.explosionParticles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.14;
+          p.alpha -= 0.02;
+          if (p.alpha <= 0) {
+            visual.explosionParticles.splice(i, 1);
+            continue;
+          }
+          ctx.save();
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function loop() {
+        tick++;
+        if (visual.machineActionTimer > 0) visual.machineActionTimer--;
+        if (visual.waterSprayTimer > 0) visual.waterSprayTimer--;
+
+        ctx.clearRect(0, 0, width, height);
+        drawSkyAndBackground();
+        drawGeologicalLayers();
+        drawHeavyEquipment(Game.getCurrentStageId());
+        updateAndDrawParticles();
+
+        animFrame = requestAnimationFrame(loop);
+      }
+
+      return {
+        init,
+        resize,
+        syncWithGameState,
+        spawnDust,
+        triggerExplosionEffect,
+        triggerWaterSpray,
+        pulseMachine
+      };
+    })();
+
+    /**
+     * ============================================================================
+     * 4. UI HELPER & CONTROLLER
+     * ============================================================================
+     */
+    const UI = {
+      showScreen(screenId) {
+        ['screen-menu', 'screen-game', 'screen-result'].forEach(id => {
+          document.getElementById(id).classList.add('hidden');
+        });
+        document.getElementById(screenId).classList.remove('hidden');
+
+        const btnHome = document.getElementById('btn-home');
+        if (screenId === 'screen-menu') {
+          btnHome.classList.add('hidden');
+        } else {
+          btnHome.classList.remove('hidden');
+        }
+      },
+
+      toggleModal(modalId, show) {
+        AudioEngine.playClick();
+        const el = document.getElementById(modalId);
+        if (show) el.classList.remove('hidden');
+        else el.classList.add('hidden');
+      },
+
+      showCanvasToast(text, type = 'info') {
+        const toast = document.getElementById('canvas-toast');
+        const toastText = document.getElementById('canvas-toast-text');
+        const toastIcon = document.getElementById('canvas-toast-icon');
+
+        toastText.textContent = text;
+        if (type === 'success') {
+          toastIcon.className = 'fa-solid fa-circle-check text-emerald-400';
+          toast.style.borderColor = 'rgba(16, 185, 129, 0.6)';
+        } else if (type === 'warning') {
+          toastIcon.className = 'fa-solid fa-triangle-exclamation text-rose-400';
+          toast.style.borderColor = 'rgba(244, 63, 94, 0.6)';
+        } else {
+          toastIcon.className = 'fa-solid fa-circle-info text-amber-400';
+          toast.style.borderColor = 'rgba(245, 158, 11, 0.6)';
+        }
+
+        toast.classList.remove('opacity-0');
+        clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => {
+          toast.classList.add('opacity-0');
+        }, 3200);
+      },
+
+      formatCurrency(num) {
+        return '$' + Math.max(0, Math.round(num)).toLocaleString('en-US');
+      },
+
+      formatNumber(num) {
+        return Math.round(num).toLocaleString('en-US');
+      }
+    };
+
+    /**
+     * ============================================================================
+     * 5. MAIN GAME LOGIC & SIMULATION CONTROLLER
+     * ============================================================================
+     */
+    const Game = (() => {
+      let state = {
+        mode: 'campaign', // 'campaign' | 'challenge'
+        studentName: 'Siswa SMK Kelas XII',
+        budget: 1200000,
+        targetCoal: 50000,
+        coalProduced: 0,
+        obRemovedBCM: 0,
+        k3: 100,
+        env: 100,
+        currentStage: 0,
+        stageProgress: [0, 0, 0, 0, 0, 0, 0],
+        stageQuizAnswered: [false, false, false, false, false, false, false],
+        stageSpecialDone: [false, false, false, false, false, false, false],
+        blastingDone: false,
+        isBlastingCountdown: false
+      };
+
+      function start(mode) {
+        AudioEngine.playClick();
+        AudioEngine.startBGM();
+
+        const rawName = document.getElementById('input-student-name').value.trim();
+        state = {
+          mode,
+          studentName: rawName || 'Siswa SMK Kelas XII',
+          budget: mode === 'campaign' ? 1200000 : 950000,
+          targetCoal: mode === 'campaign' ? 50000 : 65000,
+          coalProduced: 0,
+          obRemovedBCM: 0,
+          k3: 100,
+          env: 100,
+          currentStage: 0,
+          stageProgress: [0, 0, 0, 0, 0, 0, 0],
+          stageQuizAnswered: [false, false, false, false, false, false, false],
+          stageSpecialDone: [false, false, false, false, false, false, false],
+          blastingDone: false,
+          isBlastingCountdown: false
+        };
+
+        document.getElementById('kpi-mode-badge').textContent =
+          mode === 'campaign' ? 'Mode Kampanye' : 'Tantangan Efisiensi';
+
+        const hintBox = document.getElementById('challenge-order-hint');
+        if (mode === 'challenge') hintBox.classList.remove('hidden');
+        else hintBox.classList.add('hidden');
+
+        UI.showScreen('screen-game');
+        MineCanvas.init();
+        MineCanvas.resize();
+        MineCanvas.syncWithGameState(state);
+
+        renderAll();
+        UI.showCanvasToast('Simulasi dimulai! Mulai dari Tahap 1: Land Clearing.', 'info');
+      }
+
+      function returnToMenu() {
+        AudioEngine.playClick();
+        UI.showScreen('screen-menu');
+      }
+
+      function getCurrentStageId() {
+        return state.currentStage;
+      }
+
+      function selectStage(idx) {
+        if (state.isBlastingCountdown) return;
+        if (state.mode === 'campaign') {
+          // Campaign enforces sequential unlocking
+          const maxUnlocked = state.stageProgress.findIndex(p => p < 100);
+          const limit = maxUnlocked === -1 ? 6 : maxUnlocked;
+          if (idx > limit) {
+            AudioEngine.playWarning();
+            UI.showCanvasToast('Selesaikan tahapan sebelumnya terlebih dahulu sesuai SOP!', 'warning');
+            return;
+          }
+        } else {
+          // Challenge allows jumping, but penalizes skipping incomplete prior stages!
+          const firstIncomplete = state.stageProgress.findIndex(p => p < 100);
+          if (firstIncomplete !== -1 && idx > firstIncomplete) {
+            AudioEngine.playWarning();
+            state.k3 = Math.max(0, state.k3 - 12);
+            state.env = Math.max(0, state.env - 12);
+            state.budget = Math.max(0, state.budget - 40000);
+            UI.showCanvasToast('Pelanggaran Urutan SOP! Biaya penalti -$40,000, K3 -12%, Lingkungan -12%.', 'warning');
+          }
+        }
+        AudioEngine.playClick();
+        state.currentStage = idx;
+        renderAll();
+      }
+
+      function executeStageWork() {
+        if (state.isBlastingCountdown) return;
+        const idx = state.currentStage;
+        const stage = STAGES_DATA[idx];
+
+        if (state.stageProgress[idx] >= 100) {
+          UI.showCanvasToast('Tahapan ini sudah selesai 100%. Klik LANJUT ke tahap berikutnya.', 'success');
+          return;
+        }
+
+        // Check budget
+        const stepCost = stage.costPerStep;
+        if (state.budget < stepCost) {
+          AudioEngine.playWarning();
+          UI.showCanvasToast('Anggaran operasi tidak mencukupi! Jawab keputusan teknis untuk efisiensi biaya.', 'warning');
+          return;
+        }
+
+        // Deduct cost & advance progress by 25% per click
+        state.budget -= stepCost;
+        state.stageProgress[idx] = Math.min(100, state.stageProgress[idx] + 25);
+
+        // Update production & OB metrics
+        if (idx === 2) {
+          const obGain = state.blastingDone ? stage.obPerStep : Math.round(stage.obPerStep * 0.85);
+          state.obRemovedBCM += obGain;
+        }
+        if (idx === 3) {
+          const coalMultiplier = state.mode === 'challenge' ? 1.25 : 1.0;
+          state.coalProduced += Math.round(stage.coalPerStep * coalMultiplier);
+        }
+
+        // Audio & Canvas Visual Effects
+        MineCanvas.pulseMachine();
+        MineCanvas.syncWithGameState(state);
+
+        if (stage.hasHorn) {
+          AudioEngine.playTruckHorn();
+          MineCanvas.spawnDust(0.76, 0.37, 'rgba(203, 213, 225, 0.6)', 10);
+        } else {
+          AudioEngine.playEngineRumble(0.6);
+          MineCanvas.spawnDust(0.48, 0.45, 'rgba(180, 155, 120, 0.65)', 12);
+        }
+
+        if (state.stageProgress[idx] >= 100) {
+          AudioEngine.playSuccess();
+          UI.showCanvasToast(`${stage.shortName} selesai 100%! Pastikan Keputusan Teknis dijawab.`, 'success');
+        } else {
+          UI.showCanvasToast(`Operasi berjalan (${state.stageProgress[idx]}%) • Biaya: -${UI.formatCurrency(stepCost)}`, 'info');
+        }
+
+        renderAll();
+      }
+
+      function executeSpecialAction() {
+        if (state.isBlastingCountdown) return;
+        const idx = state.currentStage;
+        const stage = STAGES_DATA[idx];
+        if (state.stageSpecialDone[idx]) return;
+
+        // If Stage 3 (Overburden), trigger dramatic Drilling & Blasting countdown
+        if (idx === 2) {
+          state.isBlastingCountdown = true;
+          const overlay = document.getElementById('blasting-overlay');
+          const timerEl = document.getElementById('blasting-timer');
+          overlay.classList.remove('hidden');
+
+          let count = 3;
+          timerEl.textContent = count;
+          AudioEngine.playWarning();
+
+          const interval = setInterval(() => {
+            count--;
+            if (count > 0) {
+              timerEl.textContent = count;
+              AudioEngine.playClick();
+            } else {
+              clearInterval(interval);
+              overlay.classList.add('hidden');
+              state.isBlastingCountdown = false;
+              state.blastingDone = true;
+              state.stageSpecialDone[idx] = true;
+              state.k3 = Math.min(100, state.k3 + stage.specialAction.k3Bonus);
+              state.env = Math.min(100, state.env + stage.specialAction.envBonus);
+
+              AudioEngine.playBlastingExplosion();
+              MineCanvas.triggerExplosionEffect();
+              UI.showCanvasToast('BOOM! Peledakan terkendali berhasil memecah batuan keras!', 'success');
+              renderAll();
+            }
+          }, 750);
+          return;
+        }
+
+        // Standard Special Action
+        AudioEngine.playSuccess();
+        state.stageSpecialDone[idx] = true;
+        state.k3 = Math.min(100, state.k3 + stage.specialAction.k3Bonus);
+        state.env = Math.min(100, state.env + stage.specialAction.envBonus);
+
+        if (idx === 4) {
+          MineCanvas.triggerWaterSpray();
+          document.getElementById('telemetry-weather').innerHTML =
+            '<i class="fa-solid fa-droplet text-sky-400 mr-1"></i> Cuaca Pit: <span class="text-sky-300 font-semibold">Disiram Water Truck • Bebas Debu</span>';
+        }
+
+        UI.showCanvasToast(stage.specialAction.bonusText, 'success');
+        renderAll();
+      }
+
+      function answerDecision(optionIdx) {
+        const idx = state.currentStage;
+        if (state.stageQuizAnswered[idx]) return;
+
+        const stage = STAGES_DATA[idx];
+        const chosen = stage.options[optionIdx];
+        state.stageQuizAnswered[idx] = true;
+
+        state.k3 = Math.max(0, Math.min(100, state.k3 + chosen.k3Delta));
+        state.env = Math.max(0, Math.min(100, state.env + chosen.envDelta));
+        state.budget = Math.max(0, state.budget - chosen.costDelta);
+
+        if (chosen.correct) {
+          AudioEngine.playSuccess();
+          UI.showCanvasToast('Keputusan Teknis Tepat! Efisiensi & K3 terjaga.', 'success');
+        } else {
+          AudioEngine.playWarning();
+          UI.showCanvasToast('Keputusan Kurang Tepat! Terjadi penurunan skor K3/Lingkungan.', 'warning');
+        }
+
+        renderAll();
+      }
+
+      function nextStage() {
+        const idx = state.currentStage;
+        if (state.stageProgress[idx] < 100 || !state.stageQuizAnswered[idx]) {
+          AudioEngine.playWarning();
+          UI.showCanvasToast('Selesaikan 100% operasi alat dan jawab Keputusan Teknis dahulu!', 'warning');
+          return;
+        }
+
+        AudioEngine.playClick();
+        if (idx < STAGES_DATA.length - 1) {
+          state.currentStage = idx + 1;
+          renderAll();
+        } else {
+          finishSimulation();
+        }
+      }
+
+      function finishSimulation() {
+        AudioEngine.playSuccess();
+        UI.showScreen('screen-result');
+
+        // Calculate Final Score
+        const coalRatio = Math.min(1, state.coalProduced / state.targetCoal);
+        const budgetBonus = Math.min(15, Math.round((state.budget / 1000000) * 15));
+        const rawScore = Math.round(
+          coalRatio * 35 +
+          (state.k3 / 100) * 25 +
+          (state.env / 100) * 25 +
+          budgetBonus
+        );
+        const finalScore = Math.min(100, Math.max(0, rawScore));
+
+        let grade = 'C';
+        if (finalScore >= 90) grade = 'A';
+        else if (finalScore >= 80) grade = 'B+';
+        else if (finalScore >= 70) grade = 'B';
+
+        document.getElementById('res-student-name').textContent = state.studentName;
+        document.getElementById('res-mode').textContent =
+          state.mode === 'campaign' ? 'Mode Kampanye' : 'Tantangan Efisiensi';
+        document.getElementById('res-score').textContent = finalScore;
+        document.getElementById('res-grade').textContent = grade;
+
+        document.getElementById('res-budget').textContent = UI.formatCurrency(state.budget);
+        document.getElementById('res-coal').textContent = `${UI.formatNumber(state.coalProduced)} Ton`;
+        document.getElementById('res-k3').textContent = `${state.k3}%`;
+        document.getElementById('res-env').textContent = `${state.env}%`;
+
+        let analysis = '';
+        if (finalScore >= 85) {
+          analysis = `Kompetensi Sangat Baik! Anda berhasil memimpin seluruh siklus penambangan Open Cast dari Land Clearing hingga Reklamasi dengan target produksi ${UI.formatNumber(state.coalProduced)} Ton, kepatuhan K3 ${state.k3}%, dan pengelolaan lingkungan ${state.env}%.`;
+        } else if (finalScore >= 70) {
+          analysis = `Kompetensi Baik. Anda telah menyelesaikan siklus Open Cast Mining, namun perhatikan kembali ketepatan keputusan teknis terkait pengendalian Air Asam Tambang, geometri lereng jenjang, dan efisiensi biaya operasional.`;
+        } else {
+          analysis = `Perlu Peningkatan. Pastikan setiap keputusan operasional mematuhi SOP Keselamatan Pertambangan (K3), penyimpanan Top Soil terpisah, serta enkapsulasi batuan PAF saat Backfilling.`;
+        }
+        document.getElementById('res-analysis').textContent = analysis;
+      }
+
+      function renderAll() {
+        const idx = state.currentStage;
+        const stage = STAGES_DATA[idx];
+        const prog = state.stageProgress[idx];
+
+        // 1. Update KPI Dashboard
+        document.getElementById('kpi-budget').textContent = UI.formatCurrency(state.budget);
+        document.getElementById('kpi-coal').textContent = UI.formatNumber(state.coalProduced);
+        document.getElementById('kpi-coal-target').textContent = `/ ${UI.formatNumber(state.targetCoal)}`;
+        const coalPct = Math.min(100, (state.coalProduced / state.targetCoal) * 100);
+        document.getElementById('bar-coal').style.width = `${coalPct}%`;
+
+        document.getElementById('kpi-k3').textContent = `${state.k3}%`;
+        document.getElementById('bar-k3').style.width = `${state.k3}%`;
+        document.getElementById('kpi-k3').className =
+          `text-base sm:text-lg font-extrabold font-mono-tech mt-1 ${state.k3 >= 80 ? 'text-emerald-400' : 'text-rose-400'}`;
+
+        document.getElementById('kpi-env').textContent = `${state.env}%`;
+        document.getElementById('bar-env').style.width = `${state.env}%`;
+        document.getElementById('kpi-env').className =
+          `text-base sm:text-lg font-extrabold font-mono-tech mt-1 ${state.env >= 80 ? 'text-teal-400' : 'text-rose-400'}`;
+
+        const sr = state.coalProduced > 0
+          ? (state.obRemovedBCM / state.coalProduced).toFixed(1)
+          : (state.obRemovedBCM > 0 ? '∞' : '0.0');
+        document.getElementById('kpi-sr').textContent = `${sr} : 1`;
+        document.getElementById('kpi-stage-count').textContent = `Tahap ${idx + 1} / 7`;
+
+        // 2. Render 7-Stage Stepper
+        const stepper = document.getElementById('stage-stepper');
+        stepper.innerHTML = STAGES_DATA.map((st, i) => {
+          const isCurrent = i === idx;
+          const isDone = state.stageProgress[i] >= 100 && state.stageQuizAnswered[i];
+          let cardClass = 'bg-slate-950/70 border-slate-800 text-slate-400';
+          if (isCurrent) {
+            cardClass = 'bg-amber-500/15 border-amber-500 text-white stage-active-glow';
+          } else if (isDone) {
+            cardClass = 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300';
+          }
+          return `
+            <button onclick="Game.selectStage(${i})" class="p-2 rounded-xl border text-left transition flex flex-col justify-between gap-1 ${cardClass}">
+              <div class="flex items-center justify-between text-[11px] font-bold">
+                <i class="fa-solid ${st.icon}"></i>
+                <span>${isDone ? '<i class="fa-solid fa-circle-check text-emerald-400"></i>' : state.stageProgress[i] + '%'}</span>
+              </div>
+              <div class="text-[11px] font-semibold truncate">${st.shortName}</div>
+            </button>
+          `;
+        }).join('');
+
+        // 3. Update Control Panel Header & Progress
+        document.getElementById('panel-stage-badge').textContent = `TAHAP ${idx + 1} / 7`;
+        document.getElementById('panel-equipment-tag').innerHTML =
+          `<i class="fa-solid ${stage.icon} text-amber-400 mr-1"></i> ${stage.equipment}`;
+        document.getElementById('panel-stage-title').textContent = stage.title;
+        document.getElementById('panel-stage-desc').textContent = stage.desc;
+
+        document.getElementById('stage-progress-pct').textContent = `${prog}%`;
+        document.getElementById('stage-progress-bar').style.width = `${prog}%`;
+
+        document.getElementById('telemetry-fleet').innerHTML =
+          `<i class="fa-solid fa-truck-monster text-amber-400 mr-1"></i> Armada Aktif: <span class="text-slate-200 font-semibold">${stage.equipment}</span>`;
+
+        // 4. Special Field Control Button
+        const specialDone = state.stageSpecialDone[idx];
+        const fieldControls = document.getElementById('field-controls-area');
+        fieldControls.innerHTML = `
+          <button
+            onclick="Game.executeSpecialAction()"
+            ${specialDone ? 'disabled' : ''}
+            class="w-full py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-between transition border ${
+              specialDone
+                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 cursor-default'
+                : 'bg-sky-500/15 hover:bg-sky-500/25 border-sky-500/40 text-sky-300'
+            }"
+          >
+            <span class="flex items-center gap-2 text-left">
+              <i class="fa-solid ${specialDone ? 'fa-circle-check' : 'fa-wand-magic-sparkles'}"></i>
+              <span>${stage.specialAction.label}</span>
+            </span>
+            <span class="text-[10px] uppercase px-2 py-0.5 rounded bg-slate-900/80">
+              ${specialDone ? 'Terlaksana' : 'SOP Bonus'}
+            </span>
+          </button>
+        `;
+
+        // 5. Render Decision Quiz Box
+        document.getElementById('decision-question').textContent = stage.question;
+        const optionsContainer = document.getElementById('decision-options');
+        const feedbackEl = document.getElementById('decision-feedback');
+        const answered = state.stageQuizAnswered[idx];
+
+        optionsContainer.innerHTML = stage.options.map((opt, optIdx) => {
+          let btnStyle = 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-200';
+          if (answered) {
+            if (opt.correct) {
+              btnStyle = 'bg-emerald-500/20 border-emerald-500 text-emerald-200';
+            } else {
+              btnStyle = 'bg-slate-900/40 border-slate-800 text-slate-500';
+            }
+          }
+          return `
+            <button
+              onclick="Game.answerDecision(${optIdx})"
+              ${answered ? 'disabled' : ''}
+              class="w-full text-left p-2.5 rounded-lg border text-xs leading-snug transition flex items-start gap-2 ${btnStyle}"
+            >
+              <span class="font-mono-tech font-bold text-amber-400 mt-0.5">${String.fromCharCode(65 + optIdx)}.</span>
+              <span>${opt.text}</span>
+            </button>
+          `;
+        }).join('');
+
+        if (answered) {
+          const correctOpt = stage.options.find(o => o.correct);
+          feedbackEl.classList.remove('hidden');
+          feedbackEl.className = 'text-xs p-2.5 rounded-lg border bg-emerald-500/10 border-emerald-500/40 text-emerald-200';
+          feedbackEl.innerHTML = `<i class="fa-solid fa-circle-info mr-1 text-emerald-400"></i> <strong>Penjelasan Teknis:</strong> ${correctOpt.feedback}`;
+        } else {
+          feedbackEl.classList.add('hidden');
+        }
+
+        // 6. Main Action & Next Stage Buttons
+        const btnOperate = document.getElementById('btn-operate-action');
+        const btnOperateText = document.getElementById('btn-operate-text');
+        const btnOperateIcon = document.getElementById('btn-operate-icon');
+
+        if (prog >= 100) {
+          btnOperate.disabled = true;
+          btnOperateText.textContent = 'PEKERJAAN TAHAP SELESAI (100%)';
+          btnOperateIcon.className = 'fa-solid fa-check';
+        } else {
+          btnOperate.disabled = false;
+          btnOperateText.textContent = `${stage.actionLabel} (-${UI.formatCurrency(stage.costPerStep)})`;
+          btnOperateIcon.className = `fa-solid ${stage.actionIcon}`;
+        }
+
+        const btnNext = document.getElementById('btn-next-stage');
+        const readyToAdvance = prog >= 100 && answered;
+        btnNext.disabled = !readyToAdvance;
+        btnNext.innerHTML = idx === STAGES_DATA.length - 1
+          ? `<span>SELESAI & RAPOR</span> <i class="fa-solid fa-flag-checkered"></i>`
+          : `<span>LANJUT</span> <i class="fa-solid fa-arrow-right"></i>`;
+      }
+
+      return {
+        start,
+        returnToMenu,
+        getCurrentStageId,
+        selectStage,
+        executeStageWork,
+        executeSpecialAction,
+        answerDecision,
+        nextStage
+      };
+    })();
+
+    // Initialize on load
+    window.onload = () => {
+      UI.showScreen('screen-menu');
+    };
+  </script>
+</body>
+</html>
